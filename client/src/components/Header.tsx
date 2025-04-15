@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "./ui/button";
-import { 
+import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
@@ -18,7 +18,6 @@ export default function Header() {
             <Link href="/">
               <a className="text-xl font-bold text-primary">TravelAI</a>
             </Link>
-
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -39,32 +38,32 @@ export default function Header() {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>Plan</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <NavigationMenuList className="grid w-48 gap-1 p-2 bg-white rounded-lg shadow-lg">
+                    <NavigationMenuList className="grid w-52 gap-1 p-3 bg-white rounded-lg shadow-xl">
                       <NavigationMenuItem>
                         <Link href="/flights">
                           <NavigationMenuLink className="block px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer">
-                            Flights
+                            ✈️ Flights
                           </NavigationMenuLink>
                         </Link>
                       </NavigationMenuItem>
                       <NavigationMenuItem>
                         <Link href="/hotels">
                           <NavigationMenuLink className="block px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer">
-                            Hotels
+                            🏨 Hotels
                           </NavigationMenuLink>
                         </Link>
                       </NavigationMenuItem>
                       <NavigationMenuItem>
                         <Link href="/events">
                           <NavigationMenuLink className="block px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer">
-                            Events
+                            🎉 Events
                           </NavigationMenuLink>
                         </Link>
                       </NavigationMenuItem>
                       <NavigationMenuItem>
                         <Link href="/ar-vr">
                           <NavigationMenuLink className="block px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer">
-                            AR/VR Demos
+                            🕶️ AR/VR
                           </NavigationMenuLink>
                         </Link>
                       </NavigationMenuItem>
@@ -85,9 +84,15 @@ export default function Header() {
             </NavigationMenu>
           </div>
 
-          <Button variant="outline" className="ml-auto">
-            Sign In
-          </Button>
+          {/* Sign Up & Sign In Buttons */}
+          <div className="flex items-center gap-2 ml-auto">
+            <Link href="/signup">
+              <Button variant="default">Sign Up</Button>
+            </Link>
+            <Link href="/signin">
+              <Button variant="outline">Sign In</Button>
+            </Link>
+          </div>
         </div>
       </div>
     </header>

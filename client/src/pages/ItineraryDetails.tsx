@@ -9,20 +9,24 @@ import GeneratedItinerary from '@/components/GeneratedItinerary';
 
 const ItineraryDetails = () => {
   const { id } = useParams();
-  const itineraryId = id ? parseInt(id) : NaN;
+  const itineraryId = id ? parseInt(id, 10) : NaN;  // Ensure the ID is parsed correctly
   const [_, navigate] = useLocation();
   const { toast } = useToast();
 
-  const { data: itinerary, isLoading, error } = useQuery<Itinerary>({
-    queryKey: [`/api/itineraries/${itineraryId}`],
+  // Fetch itinerary data
+  const { data: itinerary, isLoading, error } = useQuery<Itinerary & { title: string }>({
+    queryKey: [`/api/itineraries/${itineraryId}`],  // Correct query key
     retry: 1,
-    enabled: !isNaN(itineraryId)
+    enabled: !isNaN(itineraryId),
+    // Removed onError as it is not a valid option for useQuery
   });
 
+  // Navigate back to "My Trips" page
   const handleBack = () => {
     navigate('/my-trips');
   };
 
+  // Handle invalid itinerary ID
   if (isNaN(itineraryId)) {
     return (
       <div className="container mx-auto px-4 py-10 text-center">
@@ -35,6 +39,7 @@ const ItineraryDetails = () => {
     );
   }
 
+  // Handle loading state
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-10 text-center">
@@ -44,6 +49,7 @@ const ItineraryDetails = () => {
     );
   }
 
+  // Handle error or missing itinerary data
   if (error || !itinerary) {
     return (
       <div className="container mx-auto px-4 py-10">
@@ -57,7 +63,7 @@ const ItineraryDetails = () => {
     );
   }
 
-  // Get the itinerary content which contains the full structure
+  // Ensure itinerary content is in the correct format
   const itineraryContent = itinerary.content as unknown as ItineraryType;
 
   return (
@@ -90,9 +96,10 @@ const ItineraryDetails = () => {
           </div>
         </div>
       </div>
-      
+
       <h1 className="text-2xl font-bold font-poppins my-4 px-4 md:hidden container mx-auto">{itinerary.title}</h1>
-      
+
+      {/* Render the itinerary content */}
       <GeneratedItinerary itinerary={itineraryContent} />
     </div>
   );

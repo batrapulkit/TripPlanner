@@ -1,12 +1,18 @@
 import OpenAI from "openai";
-import { type TravelPreference, type Conversation } from "@shared/schema";
+import dotenv from 'dotenv'; // Ensure you have this import
+import { type TravelPreference, type Conversation, type Message } from "@shared/schema";
 import { GeneratedItinerary } from "../client/src/lib/openai";
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Initialize OpenAI with API key from environment variables and custom base URL
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "sk-prpm083Ito2GbHtNDBA5EpyJWLWGdlcDHaTgKLnjdX7OLODT",
+  apiKey: process.env.OPENAI_API_KEY, // Ensure this reads the key correctly
   baseURL: "https://api.chatanywhere.tech/v1"
 });
+
+// Your remaining code...
 
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
@@ -18,86 +24,82 @@ export async function generateItineraryWithAI(
   conversation?: Conversation
 ): Promise<GeneratedItinerary> {
   try {
+    // Calculate the number of days from startDate and endDate
+    let duration = 3; // default fallback
+    if (preference.startDate && preference.endDate) {
+      const start = new Date(preference.startDate);
+      const end = new Date(preference.endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      duration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
     // Format the preference and conversation history into a prompt
     const systemPrompt = `You are an expert travel planner. Create a detailed travel itinerary based on the following preferences:
 Destination type: ${preference.destinationType || 'Not specified'}
 Custom destination: ${preference.customDestination || 'Not specified'}
-Duration: ${preference.duration || 'Not specified'}
+Duration: ${duration} days
 Budget: ${preference.budget || 'Not specified'}
 Interests: ${preference.interests || 'Not specified'}
 Pace: ${preference.pace || 'Not specified'}
-Companions: ${preference.companions || 'Not specified'}
-Activities: ${preference.activities || 'Not specified'}
-Meal Preferences: ${preference.mealPreferences || 'Not specified'}
-Dietary Restrictions: ${preference.dietaryRestrictions || 'Not specified'}
-Accommodation Type: ${preference.accommodation || 'Not specified'}
-Transportation Mode: ${preference.transportationMode || 'Not specified'}
-Additional notes: ${preference.additionalNotes || 'Not specified'}
-Dates: ${preference.startDate ? `${preference.startDate} to ${preference.endDate}` : 'Flexible'}
 
-The response should be a detailed itinerary in JSON format following exactly this structure:
+IMPORTANT: You MUST generate exactly ${duration} days of activities. Each day MUST include morning, afternoon, and evening activities.
+Do not abbreviate or summarize the itinerary.
+
+The response MUST be a valid JSON object with the following structure:
 {
-  "title": "Title of the itinerary",
-  "destination": "Destination name",
-  "duration": "Duration in days",
-  "dates": "Date range if specified",
-  "summary": "Brief overview of the trip",
+  "title": "string",
+  "destination": "string",
+  "duration": "string",
+  "summary": "string",
   "tripOverview": {
-    "budget": "Budget category",
-    "pace": "Travel pace",
-    "travelStyle": "Solo, couple, family, etc."
+    "budget": "string",
+    "pace": "string",
+    "travelStyle": "string"
   },
   "days": [
     {
-      "dayNumber": 1,
-      "title": "Day title",
-      "description": "Optional day description",
+      "dayNumber": "number",
+      "title": "string",
       "morning": {
-        "activity": "Morning activity",
-        "description": "Description of the activity"
+        "activity": "string",
+        "description": "string"
       },
       "afternoon": {
-        "activity": "Afternoon activity",
-        "description": "Description of the activity"
+        "activity": "string",
+        "description": "string"
       },
       "evening": {
-        "activity": "Evening activity",
-        "description": "Description of the activity"
+        "activity": "string",
+        "description": "string"
       },
-      "travelTips": ["Tip 1", "Tip 2", "Tip 3"],
-      "image": "URL to a representative image (use Unsplash)"
+      "travelTips": ["string"],
+      "image": "string (Unsplash URL)"
     }
   ],
   "accommodations": [
     {
-      "name": "Accommodation name",
-      "rating": 4.5,
-      "priceRange": "$100-200/night",
-      "description": "Brief description",
-      "type": "Hotel/Resort/etc.",
-      "image": "URL to image (use Unsplash)"
+      "name": "string",
+      "rating": "number",
+      "priceRange": "string",
+      "description": "string",
+      "type": "string",
+      "image": "string (Unsplash URL)"
     }
   ]
-}
-
-For images, use Unsplash URLs with appropriate travel images.
-Create at least 3 days worth of activities, even for longer trips.
-Include at least 2-3 accommodation options.
-Make sure the itinerary matches the traveler's preferences, especially budget and pace.
-`;
+}`;
 
     // Include conversation history if available
     let userConversation = "";
-    if (conversation && Array.isArray(conversation.messages) && conversation.messages.length > 0) {
-      userConversation = "Additional information from the user's conversation:\n";
-      conversation.messages.forEach((msg: {role: string, content: string}) => {
-        userConversation += `${msg.role.toUpperCase()}: ${msg.content}\n`;
-      });
+    if (Array.isArray(conversation?.messages) && conversation.messages.length > 0) {
+      userConversation = "Additional context from conversation:\n" +
+        (Array.isArray(conversation?.messages) ? conversation.messages : [])
+          .map((msg: { role: string; content: string }) => `${msg.role.toUpperCase()}: ${msg.content}`)
+          .join('\n');
     }
 
-    // Call the OpenAI API with the constructed prompt
+    // Call the OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // Using the latest model
+      model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userConversation || "Generate a detailed travel itinerary based on my preferences." }
@@ -106,13 +108,18 @@ Make sure the itinerary matches the traveler's preferences, especially budget an
       temperature: 0.7,
     });
 
-    // Parse the JSON response
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error("Empty response from OpenAI");
     }
 
     const itinerary = JSON.parse(content) as GeneratedItinerary;
+    
+    // Validate that we have the correct number of days
+    if (itinerary.days.length !== duration) {
+      throw new Error(`Generated itinerary has ${itinerary.days.length} days instead of the requested ${duration} days`);
+    }
+
     return itinerary;
   } catch (error) {
     console.error("Error generating itinerary with OpenAI:", error);
@@ -146,7 +153,7 @@ Extract the following information if present:
 Output ONLY a JSON object with these fields. If information is not present, don't include the field.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: input }
